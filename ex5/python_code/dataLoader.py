@@ -48,12 +48,9 @@ class dataHolder:
         return dataset
 
 
-def runRanker(dhTraining, dhTesting, epochs=20):
+def runRanker(dhTraining, dhTesting, epochs=20, err=True):
     #TODO: Insert the code for training and testing your ranker here.
     #Dataholders for training and testset
-    # dhTraining = dataHolder(trainingset)
-    # dhTesting = dataHolder(testset)
-
     #Creating an ANN instance - feel free to experiment with the learning rate (the third parameter).
     nn = Bp.NN(46,10,0.001)
 
@@ -64,43 +61,26 @@ def runRanker(dhTraining, dhTesting, epochs=20):
     for qid in dhTraining.dataset.keys():
         #This iterates through every query ID in our training set
         dataInstance = dhTraining.dataset[qid] #All data instances (query, features, rating) for query qid
-        #TODO: Store the training instances into the trainingPatterns array. 
-            #  Remember to store them as pairs, where the first item is rated higher than the second.
+        # store them as pairs, where the first item is rated higher than the second.
         dataInstance.sort(key=operator.attrgetter('rating'))
         for i in range(len(dataInstance)-1):
             for j in range(i+1, len(dataInstance)):
                 a = dataInstance[i]
                 b = dataInstance[j]
-                if a.rating > b.rating :
+                if  a.rating > b.rating :
                     trainingPatterns.append( (a, b) )
                 elif b.rating > a.rating:
                     trainingPatterns.append( (b, a) )
                 else: continue
-        #TODO: Hint: A good first step to get the pair ordering right, is to sort the instances based on 
-                #    their rating for this query. (sort by x.rating for each x in dataInstance)
     # pdb.set_trace()
     
     # sort trainingPattern by highest pair
     # trainingPatterns.sort()
 
-
-
     for qid in dhTesting.dataset.keys():
         #This iterates through every query ID in our test set
         dataInstance = dhTesting.dataset[qid]
-        #TODO: Store the test instances into the testPatterns array, once again as pairs.
-        #TODO: Hint: The testing will be easier for you if you also now order the pairs -
-             # it will make it easy to see if the ANN agrees with your ordering.
         dataInstance.sort(key=operator.attrgetter('rating'))
-        # for i in range(0, len(dataInstance)-1, 2):
-        #     a = dataInstance[i]
-        #     b = dataInstance[i+1]
-        #     # testPatterns.append( (a, b) if a.rating > b.rating else (b, a) )
-        #     if a.rating > b.rating :
-        #         testPatterns.append( (a, b) )
-        #     elif b.rating > a.rating :
-        #         testPatterns.append( (b, a) )
-        #     else: continue
         for i in range(len(dataInstance)-1):
             for j in range(i+1, len(dataInstance)):
                 a = dataInstance[i]
@@ -113,8 +93,8 @@ def runRanker(dhTraining, dhTesting, epochs=20):
     # sort testPattern by highest pair
 
     #Check ANN performance before training
-    testErrorRates = [nn.countMisorderedPairs(testPatterns)] 
-    trainErrorRates = [nn.countMisorderedPairs(trainingPatterns)] 
+    testErrorRates = [nn.countMisorderedPairs(testPatterns, err)] 
+    trainErrorRates = [nn.countMisorderedPairs(trainingPatterns, err)] 
     # pdb.set_trace()
 
     for i in range(epochs):
@@ -122,8 +102,8 @@ def runRanker(dhTraining, dhTesting, epochs=20):
         nn.train(trainingPatterns, iterations=1)
         #Check ANN performance after training.
 
-        testErrorRates.append( nn.countMisorderedPairs(testPatterns) )
-        trainErrorRates.append( nn.countMisorderedPairs(trainingPatterns) )
+        testErrorRates.append( nn.countMisorderedPairs(testPatterns, err) )
+        trainErrorRates.append( nn.countMisorderedPairs(trainingPatterns, err) )
         # pdb.set_trace()
 
     # pdb.set_trace()
@@ -137,52 +117,41 @@ def main(epochs):
     dhTraining = dataHolder('train')
     dhTesting = dataHolder('test')
 
-    # testErr, trainErr, nn = runRanker('train', 'test', epochs)
-      #TODO: Store the data returned by countMisorderedPairs and plot it, showing how training and testing errors develop.
+    #Store the data returned by countMisorderedPairs and plot it, showing how training and testing errors develop.
+
+    if epochs > 25 :
+        avgTest, avgTrain, nn = runRanker(dhTraining, dhTesting, epochs, err=False)
+        plotGraph( avgTrain, avgTest, "Performance", "Accuracy", epochs)
+        return 
 
     avgTest, avgTrain, nn = runRanker(dhTraining, dhTesting, epochs)
-    # print len(avgTest.tolist()), len(avgTrain.tolist()), avgTest[-1], avgTrain[-1]
-    # exit()
-    # pdb.set_trace()
-    avgTest = np.array(avgTest)
-    avgTrain = np.array(avgTrain)
     # pdb.set_trace()
 
     # calculate average 
     for it in range(1, 5):
         testErr, trainErr, nn = runRanker(dhTraining, dhTesting, epochs)
-
         avgTest = np.add(avgTest, testErr)
         avgTrain = np.add(avgTrain, trainErr)
-        print avgTest.size, avgTrain.size, avgTest[-1], avgTrain[-1]
+        plotGraph(trainErr, testErr, "Error measurement in iteration " + str(it), epochs)
     # pdb.set_trace()
-
 
     avgTest /= 5.
     avgTrain /= 5.
-    print avgTest.shape(), avgTrain.shape(), '\n',avgTest, '\n',avgTrain
-    # print len(avgTest), len(avgTrain)
-    # print avgTest[0], avgTrain[0]
-    pdb.set_trace()
-    
-
-    fig, ax = plt.subplots(1, 1)
-    ax.set_title("Performance measurment")
-    ax.plot(range(0, epochs+1), avgTrain, color='r')
-    ax.plot(range(0, epochs+1), avgTest, color='b')
-    ax.set_xlabel('Epochs')
-    ax.set_ylabel('Error rate')
-    ax.grid(True)
-    plt.show()
-
-
-    # output = open('output.txt', 'a')
-    # print >> output, "\nTests \n*******************************"
-    # print >> output, "numInputs = ", nn.numInputs, "\tnumHidden = ", nn.numHidden
-    # print >> output, "epochs = ", epochs, "\tlearning rate = ", nn.learningRate
-    
+    # Plot the averaged results
+    plotGraph(avgTrain, avgTest, "Average Performance", "Error rate", epochs)
 
     return 0
 
+
+def plotGraph(trainErr, testErr, title, yLabel, n):
+    fig, ax = plt.subplots(1, 1)
+    ax.set_title("title")
+    ax.plot(range(0, n+1), trainErr, color='r')
+    ax.plot(range(0, n+1), testErr, color='b')
+    ax.set_xlabel('Epochs')
+    ax.set_ylabel(yLabel)
+    ax.grid(True)
+    plt.show()
+
 if __name__ == "__main__":
-    main(25)
+    main(20)
