@@ -1,8 +1,11 @@
 __author__ = 'kaiolae'
 __author__ = 'kaiolae'
+""" The given code skeleton is editet by Neshat Naderi"""
+
 import Backprop_skeleton as Bp
+import operator, pdb, sys
 import matplotlib.pyplot as plt
-import operator, pdb
+import numpy as np
 #Class for holding your data - one object for each line in the dataset
 class dataInstance:
 
@@ -45,11 +48,11 @@ class dataHolder:
         return dataset
 
 
-def runRanker(trainingset, testset):
+def runRanker(dhTraining, dhTesting, epochs=20):
     #TODO: Insert the code for training and testing your ranker here.
     #Dataholders for training and testset
-    dhTraining = dataHolder(trainingset)
-    dhTesting = dataHolder(testset)
+    # dhTraining = dataHolder(trainingset)
+    # dhTesting = dataHolder(testset)
 
     #Creating an ANN instance - feel free to experiment with the learning rate (the third parameter).
     nn = Bp.NN(46,10,0.001)
@@ -108,35 +111,78 @@ def runRanker(trainingset, testset):
                     testPatterns.append( (b, a) )
                 else: continue
     # sort testPattern by highest pair
-    # testPatterns.sort() 
-    
 
     #Check ANN performance before training
-    testErrorRates = [ nn.countMisorderedPairs(testPatterns) ]
-    epochs = 50
+    testErrorRates = [nn.countMisorderedPairs(testPatterns)] 
+    trainErrorRates = [nn.countMisorderedPairs(trainingPatterns)] 
+    # pdb.set_trace()
+
     for i in range(epochs):
-        #Running 25 iterations, measuring testing performance after each round of training.
         #Training
         nn.train(trainingPatterns, iterations=1)
         #Check ANN performance after training.
+
         testErrorRates.append( nn.countMisorderedPairs(testPatterns) )
+        trainErrorRates.append( nn.countMisorderedPairs(trainingPatterns) )
+        # pdb.set_trace()
 
-        test_error_percent.append(nn.countMisorderedPairs(testPatterns))
-        training_error_percent.append(nn.countMisorderedPairs(trainingPatterns))
-
-    #     if i==3:
-    #         break
     # pdb.set_trace()
-    #TODO: Store the data returned by countMisorderedPairs and plot it, showing how training and testing errors develop.
-    output = open('output.txt', 'a')
-    print >> output, "\nTests \n*******************************"
-    # print >> output, "Error rates = ", errorRates
-    print >> output, "numInputs = ", nn.numInputs, "\tnumHidden = ", nn.numHidden
-    print >> output, "epochs = ", epochs, "\tlearning rate = ", nn.learningRate
 
-    plt.plot(range(0, epochs+1), errorRates)
-    plt.ylabel('Error rate')
-    plt.xlabel('Training epochs')
-    plt.grid(True)
+    return testErrorRates, trainErrorRates, nn
+
+    # pdb.set_trace()
+  
+def main(epochs):
+
+    dhTraining = dataHolder('train')
+    dhTesting = dataHolder('test')
+
+    # testErr, trainErr, nn = runRanker('train', 'test', epochs)
+      #TODO: Store the data returned by countMisorderedPairs and plot it, showing how training and testing errors develop.
+
+    avgTest, avgTrain, nn = runRanker(dhTraining, dhTesting, epochs)
+    # print len(avgTest.tolist()), len(avgTrain.tolist()), avgTest[-1], avgTrain[-1]
+    # exit()
+    # pdb.set_trace()
+    avgTest = np.array(avgTest)
+    avgTrain = np.array(avgTrain)
+    # pdb.set_trace()
+
+    # calculate average 
+    for it in range(1, 5):
+        testErr, trainErr, nn = runRanker(dhTraining, dhTesting, epochs)
+
+        avgTest = np.add(avgTest, testErr)
+        avgTrain = np.add(avgTrain, trainErr)
+        print avgTest.size, avgTrain.size, avgTest[-1], avgTrain[-1]
+    # pdb.set_trace()
+
+
+    avgTest /= 5.
+    avgTrain /= 5.
+    print avgTest.shape(), avgTrain.shape(), '\n',avgTest, '\n',avgTrain
+    # print len(avgTest), len(avgTrain)
+    # print avgTest[0], avgTrain[0]
+    pdb.set_trace()
+    
+
+    fig, ax = plt.subplots(1, 1)
+    ax.set_title("Performance measurment")
+    ax.plot(range(0, epochs+1), avgTrain, color='r')
+    ax.plot(range(0, epochs+1), avgTest, color='b')
+    ax.set_xlabel('Epochs')
+    ax.set_ylabel('Error rate')
+    ax.grid(True)
     plt.show()
-runRanker('train', 'test')
+
+
+    # output = open('output.txt', 'a')
+    # print >> output, "\nTests \n*******************************"
+    # print >> output, "numInputs = ", nn.numInputs, "\tnumHidden = ", nn.numHidden
+    # print >> output, "epochs = ", epochs, "\tlearning rate = ", nn.learningRate
+    
+
+    return 0
+
+if __name__ == "__main__":
+    main(25)
