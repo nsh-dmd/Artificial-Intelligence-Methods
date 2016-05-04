@@ -132,7 +132,7 @@ def main(epochs):
         testErr, trainErr, nn = runRanker(dhTraining, dhTesting, epochs)
         avgTest = np.add(avgTest, testErr)
         avgTrain = np.add(avgTrain, trainErr)
-        plotGraph(trainErr, testErr, "Error measurement in iteration " + str(it), epochs)
+        plotGraph(trainErr, testErr, "Error measurement in iteration " + str(it), "Error rate", epochs)
     # pdb.set_trace()
 
     avgTest /= 5.
@@ -145,13 +145,13 @@ def main(epochs):
 
 def plotGraph(trainErr, testErr, title, yLabel, n):
     fig, ax = plt.subplots(1, 1)
-    ax.set_title("title")
+    ax.set_title(title)
     ax.plot(range(0, n+1), trainErr, color='r')
     ax.plot(range(0, n+1), testErr, color='b')
     ax.set_xlabel('Epochs')
     ax.set_ylabel(yLabel)
     ax.grid(True)
-    plt.show()
+    fig.show()
 
 if __name__ == "__main__":
     main(20)
